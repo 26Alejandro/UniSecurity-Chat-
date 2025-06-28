@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNISECURITY</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="uni.png">
+    <meta name="description" content="Sistema de chat seguro para la Universidad Nacional de Ingeniería">
+    <meta name="keywords" content="UNI, FIEE, chat seguro, cifrado, estudiantes, docentes">
+    <meta name="author" content="FIEE UNI Development Team">
+</head>
+<body>
+    <div class="container">
+        
+        <h1>UNISECURITY</h1>
+
+        <!-- Sección de Autenticación -->
+        <div id="auth-section">
+            <h2>Registro / Login</h2>
+            <input type="email" id="username" placeholder="Correo@uni.pe o @uni.edu.pe" pattern="[a-zA-Z0-9._%+-]+@uni\.(pe|edu\.pe)$" required>
+            <input type="password" id="password" placeholder="Contraseña" minlength="8" title="Debe tener como mínimo 8 caracteres, incluyendo letras, números y caracteres especiales" required>
+            <button id="register-btn">Registrar</button>
+            <button id="login-btn">Iniciar Sesión</button>
+            
+            <!-- Google Sign-In Button -->
+            <div id="g_id_onload"
+                 data-client_id="1024943540370-jr5tfre3d4em533pof6dmm03n0etgp7f.apps.googleusercontent.com"
+                 data-callback="handleGoogleLogin"
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin" data-type="standard" data-size="large" style="margin-top: 10px;"></div>
+            
+            <p id="auth-message"></p>
+            
+            <div class="auth-info">
+                <small>
+                    <strong>Credenciales de prueba:</strong><br>
+                    Admin: admin@uni.edu.pe / UniAdmin2024!<br>
+                    Usa tu correo institucional UNI para registro
+                </small>
+            </div>
+        </div>
+
+        <!-- Sección Principal del Chat -->
+        <div id="chat-section" style="display: none;">
+            <div class="header">
+                <div class="header-left">
+                    <h2>Bienvenido, <span id="current-user"></span>!</h2>
+                    <p>Usuarios en línea: <span id="online-users"></span></p>
+                </div>
+                <div class="header-right">
+                    <button id="logout-btn" class="logout-btn">Cerrar Sesión</button>
+                </div>
+            </div>
+
+            <!-- Barra de navegación -->
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="showTab('chat')">💬 Chat</button>
+                <button class="nav-tab" onclick="showTab('tickets')" id="tickets-tab" style="display: none;">🎫 Consultas</button>
+                <button class="nav-tab" onclick="showTab('groups')">👥 Grupos</button>
+                <button class="nav-tab" onclick="showTab('notifications')">🔔 Notificaciones</button>
+            </div>
+
+            <!-- Sección de Chat -->
+            <div id="chat-tab" class="tab-content active">
+                <div class="main-chat-area">
+                    <!-- Panel de Amigos -->
+                    <div class="friends-panel">
+                        <h3>Amigos</h3>
+                        
+                        <!-- Buscar y agregar amigos -->
+                        <div class="add-friends-section">
+                            <input type="text" id="search-users" placeholder="Buscar usuarios..." />
+                            <div id="search-results" class="search-results"></div>
+                        </div>
+
+                        <!-- Solicitudes de amistad -->
+                        <div class="friend-requests-section">
+                            <h4>Solicitudes pendientes</h4>
+                            <div id="friend-requests-list" class="requests-list"></div>
+                        </div>
+
+                        <!-- Lista de amigos -->
+                        <div class="friends-list-section">
+                            <h4>Mis amigos</h4>
+                            <div id="friends-list" class="friends-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Chat -->
+                    <div class="chat-panel">
+                        <div id="no-chat-selected" class="no-chat-message">
+                            <h3>Selecciona un amigo para comenzar a chatear</h3>
+                            <p>Haz clic en uno de tus amigos para abrir el chat</p>
+                        </div>
+
+                        <div id="active-chat" class="active-chat" style="display: none;">
+                            <div class="chat-header">
+                                <h4>Chat con <span id="chat-partner"></span></h4>
+                                <div class="chat-controls">
+                                    <button id="clear-chat-btn" class="small-btn">Limpiar Chat</button>
+                                    <button id="close-chat-btn" class="small-btn">Cerrar Chat</button>
+                                </div>
+                            </div>
+                            
+                            <div id="messages" class="messages-container"></div>
+                            
+                            <div class="message-input-area">
+                                <!-- Archivo seleccionado -->
+                                <div id="file-selected" style="display: none;" class="file-selected">
+                                    <span id="file-name-display"></span>
+                                    <button type="button" onclick="cancelFileSelection()">❌</button>
+                                </div>
+                                
+                                <!-- Indicador de grabación -->
+                                <div id="recording-indicator" style="display: none;" class="recording-indicator">
+                                    <div class="recording-animation">
+                                        <div class="recording-dot"></div>
+                                        <span>Grabando audio...</span>
+                                    </div>
+                                    <div class="recording-timer" id="recording-timer">00:00</div>
+                                    <div class="recording-controls">
+                                        <button type="button" class="cancel-recording-btn" onclick="cancelAudioRecording()">❌</button>
+                                        <button type="button" class="stop-recording-btn" onclick="stopAudioRecording()">⏹️</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Fila de entrada de mensaje -->
+                                <div class="message-input-row">
+                                    <input type="file" id="file-input" style="display: none;" onchange="handleFileSelect(event)" accept="*/*">
+                                    <button type="button" id="attach-file-btn" onclick="document.getElementById('file-input').click()" title="Adjuntar archivo">📎</button>
+                                    <button type="button" id="record-audio-btn" onclick="startAudioRecording()" title="Grabar audio">🎤</button>
+                                    <input type="text" id="message-input" placeholder="Escribe un mensaje..." disabled>
+                                    <button id="send-message-btn" disabled>Enviar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Tickets/Consultas MEJORADA -->
+            <div id="tickets-tab" class="tab-content">
+                <div class="tickets-section">
+                    <div class="tickets-header">
+                        <h2>🎫 Sistema de Consultas a Docentes</h2>
+                        <div class="tickets-description">
+                            <p>Los estudiantes pueden enviar consultas directas a los docentes disponibles.</p>
+                            <p>Los docentes pueden responder y gestionar las consultas recibidas.</p>
+                            <p>Sistema con análisis antivirus automático para archivos adjuntos.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Contenedor principal de tickets -->
+                    <div id="tickets-container" class="tickets-container">
+                        <div class="loading-tickets">
+                            <p>🔄 Cargando sistema de consultas...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Grupos MEJORADA -->
+            <div id="groups-tab" class="tab-content">
+                <div class="groups-section">
+                    <div class="groups-header">
+                        <h2>👥 Grupos de Estudio</h2>
+                        <div class="groups-stats">
+                            <div class="stat-item">
+                                <span class="stat-number" id="my-groups-count">0</span>
+                                <span class="stat-label">Mis Grupos</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="total-members-count">0</span>
+                                <span class="stat-label">Total Miembros</span>
+                            </div>
+                        </div>
+                        <button class="primary-btn" onclick="showCreateGroupModal()">Crear Grupo</button>
+                    </div>
+                    
+                    <div class="groups-container">
+                        <div class="my-groups">
+                            <h3>Mis Grupos</h3>
+                            <div id="my-groups-list" class="groups-list">
+                                <div class="loading-groups">
+                                    <p>🔄 Cargando grupos...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="group-chat-area" id="group-chat-area" style="display: none;">
+                            <div class="group-chat-header">
+                                <h3 id="current-group-name">Grupo</h3>
+                                <div class="group-controls">
+                                    <button class="small-btn" onclick="showGroupInfo()">ℹ️ Info</button>
+                                    <button class="small-btn" onclick="createPoll()">📊 Encuesta</button>
+                                    <button class="small-btn" onclick="closeGroupChat()">❌</button>
+                                </div>
+                            </div>
+                            
+                            <div id="group-messages" class="messages-container group-messages">
+                                <div class="no-messages">
+                                    <p>Selecciona un grupo para ver los mensajes</p>
+                                </div>
+                            </div>
+                            
+                            <div class="group-input-area">
+                                <input type="text" id="group-message-input" placeholder="Escribe al grupo...">
+                                <button id="send-group-message-btn">Enviar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección de Notificaciones MEJORADA -->
+            <div id="notifications-tab" class="tab-content">
+                <div class="notifications-section">
+                    <div class="notifications-header">
+                        <h2>🔔 Notificaciones de Eventos y Comedor</h2>
+                        <div class="notifications-controls">
+                            <button class="small-btn" onclick="refreshNotifications()">🔄 Actualizar</button>
+                            <button class="small-btn" onclick="markAllAsRead()">✅ Marcar todo como leído</button>
+                        </div>
+                    </div>
+                    
+                    <div class="notifications-container">
+                        <div class="notification-sources">
+                            <div class="notification-source">
+                                <h3>🎉 Eventos CCC UNI FIEE</h3>
+                                <div class="source-description">
+                                    <p>Mantente al día con todos los eventos, hackathons, seminarios y actividades del Centro de Cómputo FIEE.</p>
+                                </div>
+                                <div id="events-notifications" class="notifications-list">
+                                    <!-- Las notificaciones se cargan dinámicamente -->
+                                </div>
+                            </div>
+                            
+                            <div class="notification-source">
+                                <h3>🍽️ Menú del Comedor UNI</h3>
+                                <div class="source-description">
+                                    <p>Consulta diariamente el menú disponible en el comedor universitario con precios actualizados.</p>
+                                </div>
+                                <div id="menu-notifications" class="notifications-list">
+                                    <!-- Las notificaciones se cargan dinámicamente -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Panel de administración para notificaciones (solo admin) -->
+                        <div id="admin-notifications-panel" class="admin-panel" style="display: none;">
+                            <h3>👑 Panel de Administración - Notificaciones</h3>
+                            <div class="admin-actions">
+                                <button class="primary-btn" onclick="createEventNotification()">Crear Evento</button>
+                                <button class="primary-btn" onclick="updateMenuNotification()">Actualizar Menú</button>
+                                <button class="secondary-btn" onclick="manageNotifications()">Gestionar Notificaciones</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Temporizador Pomodoro (mantenido igual) -->
+            <div class="pomodoro-container" id="pomodoro-timer">
+                <div class="pomodoro-header" onclick="togglePomodoroCollapse()">
+                    <div class="pomodoro-title">
+                        🍅 <span class="pomodoro-text">Pomodoro Timer</span>
+                        <span class="pomodoro-status" id="pomodoro-status">Listo para estudiar</span>
+                    </div>
+                    <button class="pomodoro-toggle" id="pomodoro-toggle-btn">Minimizar</button>
+                </div>
+                
+                <div class="pomodoro-content" id="pomodoro-content">
+                    <!-- Barra de progreso -->
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    
+                    <!-- Display del temporizador -->
+                    <div class="timer-display">
+                        <div class="timer-time" id="timer-display">25:00</div>
+                        <div class="timer-mode" id="timer-mode">📚 Sesión de Estudio</div>
+                        <div class="timer-session" id="timer-session">Sesión 1 de 4</div>
+                    </div>
+                    
+                    <!-- Controles -->
+                    <div class="timer-controls">
+                        <button class="timer-btn start" id="start-btn" onclick="startPomodoroTimer()">▶️ Iniciar</button>
+                        <button class="timer-btn pause" id="pause-btn" onclick="pausePomodoroTimer()" disabled>⏸️ Pausar</button>
+                        <button class="timer-btn stop" id="stop-btn" onclick="stopPomodoroTimer()" disabled>⏹️ Detener</button>
+                        <button class="timer-btn" onclick="skipPomodoroSession()">⏭️ Saltar</button>
+                    </div>
+                    
+                    <!-- Configuración -->
+                    <div class="timer-settings">
+                        <div class="setting-group">
+                            <div class="setting-label">Trabajo (min)</div>
+                            <input type="number" class="setting-input" id="work-time" value="25" min="1" max="60">
+                        </div>
+                        <div class="setting-group">
+                            <div class="setting-label">Descanso (min)</div>
+                            <input type="number" class="setting-input" id="break-time" value="5" min="1" max="30">
+                        </div>
+                        <div class="setting-group">
+                            <div class="setting-label">Descanso largo (min)</div>
+                            <input type="number" class="setting-input" id="long-break-time" value="15" min="5" max="45">
+                        </div>
+                        <div class="setting-group">
+                            <div class="setting-label">Sesiones para descanso largo</div>
+                            <input type="number" class="setting-input" id="sessions-until-long" value="4" min="2" max="8">
+                        </div>
+                    </div>
+                    
+                    <!-- Estadísticas -->
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="sessions-today">0</div>
+                            <div class="stat-label">Hoy</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="total-sessions">0</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="study-time-today">0h</div>
+                            <div class="stat-label">Tiempo hoy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notificación del timer -->
+            <div class="timer-notification" id="timer-notification">
+                <div class="notification-content">
+                    <div class="notification-title">🍅 Pomodoro</div>
+                    <div class="notification-message" id="notification-message">¡Es hora de un descanso!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para crear grupo MEJORADO -->
+    <div id="create-group-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Crear Nuevo Grupo</h3>
+                <button class="close-modal" onclick="closeCreateGroupModal()">❌</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-group-form">
+                    <div class="form-group">
+                        <label for="group-name">Nombre del grupo *</label>
+                        <input type="text" id="group-name" placeholder="Ej: Grupo de Estudio Cálculo 2" required maxlength="50">
+                    </div>
+                    <div class="form-group">
+                        <label for="group-description">Descripción</label>
+                        <textarea id="group-description" placeholder="Describe el propósito del grupo..." rows="3" maxlength="200"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="max-members">Máximo de miembros</label>
+                        <input type="number" id="max-members" value="50" min="5" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="is-private">
+                            <span class="checkmark"></span>
+                            Grupo privado (solo por invitación)
+                        </label>
+                    </div>
+                    <button type="submit" class="primary-btn full-width">Crear Grupo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para crear encuesta -->
+    <div id="create-poll-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Crear Encuesta</h3>
+                <button class="close-modal" onclick="closeCreatePollModal()">❌</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-poll-form">
+                    <div class="form-group">
+                        <label for="poll-question">Pregunta de la encuesta *</label>
+                        <input type="text" id="poll-question" placeholder="¿Cuál prefieres para el proyecto final?" required maxlength="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Opciones de respuesta</label>
+                        <div id="poll-options">
+                            <input type="text" class="poll-option" placeholder="Opción 1" required maxlength="50">
+                            <input type="text" class="poll-option" placeholder="Opción 2" required maxlength="50">
+                        </div>
+                        <button type="button" class="secondary-btn" onclick="addPollOption()">+ Agregar opción</button>
+                    </div>
+                    <button type="submit" class="primary-btn full-width">Crear Encuesta</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para información del grupo -->
+    <div id="group-info-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Información del Grupo</h3>
+                <button class="close-modal" onclick="closeGroupInfoModal()">❌</button>
+            </div>
+            <div class="modal-body">
+                <div id="group-info-content">
+                    <!-- Contenido se carga dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para ver estadísticas de antivirus (Admin) -->
+    <div id="antivirus-stats-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🛡️ Estadísticas del Sistema Antivirus</h3>
+                <button class="close-modal" onclick="closeAntivirusStatsModal()">❌</button>
+            </div>
+            <div class="modal-body">
+                <div id="antivirus-stats-content">
+                    <div class="stats-overview">
+                        <div class="stat-card">
+                            <h4>Archivos Escaneados</h4>
+                            <div class="stat-value" id="total-scanned">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Amenazas Detectadas</h4>
+                            <div class="stat-value danger" id="threats-detected">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Usuarios Activos</h4>
+                            <div class="stat-value" id="unique-uploaders">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Tamaño Promedio</h4>
+                            <div class="stat-value" id="avg-file-size">0 KB</div>
+                        </div>
+                    </div>
+                    <div class="recent-scans">
+                        <h4>Escaneos Recientes</h4>
+                        <div id="recent-scans-list">
+                            <!-- Se carga dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast para notificaciones -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-left">
+            <p>Número de soporte: 968 170 488</p>
+            <p><small>UNISECURITY v2.1 - Sistema de Chat Seguro UNI</small></p>
+            <p><small>Con análisis antivirus automático y sistema de tickets mejorado</small></p>
+        </div>
+        <div class="footer-right">
+            <a href="https://www.facebook.com/CCCUNI/" target="_blank" rel="noopener noreferrer">
+                <img src="images.jpg" alt="CCC UNI" class="footer-image">
+            </a>
+            <a href="https://www.facebook.com/FIEE.UNI.Oficial/?locale=es_LA" target="_blank" rel="noopener noreferrer">
+                <img src="fiee.png" alt="FIEE UNI" class="footer-image">
+            </a>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <!-- Google Identity Services Script -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Cliente principal -->
+    <script src="client.js"></script>
+
+    <script>
+        // =============================================================================
+        // FUNCIONES PARA NAVEGACIÓN DE TABS Y MODALES
+        // =============================================================================
+        
+        // Funciones para navegación de tabs
+        function showTab(tabName) {
+            // Ocultar todas las pestañas
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            const navTabs = document.querySelectorAll('.nav-tab');
+            navTabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Mostrar la pestaña seleccionada
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+            
+            // Cargar contenido específico según la pestaña
+            if (tabName === 'tickets') {
+                loadTicketsSection();
+            } else if (tabName === 'groups') {
+                loadGroupsSection();
+            } else if (tabName === 'notifications') {
+                loadNotificationsSection();
+            }
+        }
+
+        // =============================================================================
+        // FUNCIONES PARA MODALES
+        // =============================================================================
+        
+        // Funciones para el modal de crear grupo
+        function showCreateGroupModal() {
+            document.getElementById('create-group-modal').style.display = 'flex';
+            document.getElementById('group-name').focus();
+        }
+
+        function closeCreateGroupModal() {
+            document.getElementById('create-group-modal').style.display = 'none';
+            document.getElementById('create-group-form').reset();
+        }
+
+        // Funciones para el modal de crear encuesta
+        function createPoll() {
+            document.getElementById('create-poll-modal').style.display = 'flex';
+            document.getElementById('poll-question').focus();
+        }
+
+        function closeCreatePollModal() {
+            document.getElementById('create-poll-modal').style.display = 'none';
+            document.getElementById('create-poll-form').reset();
+            // Resetear opciones a las 2 iniciales
+            const optionsContainer = document.getElementById('poll-options');
+            const options = optionsContainer.querySelectorAll('.poll-option');
+            for (let i = 2; i < options.length; i++) {
+                options[i].remove();
+            }
+        }
+
+        function addPollOption() {
+            const optionsContainer = document.getElementById('poll-options');
+            const optionCount = optionsContainer.children.length + 1;
+            if (optionCount > 6) {
+                showToast('Máximo 6 opciones permitidas', 'warning');
+                return;
+            }
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'poll-option';
+            input.placeholder = `Opción ${optionCount}`;
+            input.required = true;
+            input.maxLength = 50;
+            optionsContainer.appendChild(input);
+        }
+
+        // Funciones para información del grupo
+        function showGroupInfo() {
+            if (window.currentGroup) {
+                document.getElementById('group-info-modal').style.display = 'flex';
+                loadGroupInfo();
+            } else {
+                showToast('Selecciona un grupo primero', 'warning');
+            }
+        }
+
+        function closeGroupInfoModal() {
+            document.getElementById('group-info-modal').style.display = 'none';
+        }
+
+        function loadGroupInfo() {
+            const content = document.getElementById('group-info-content');
+            if (window.currentGroup) {
+                content.innerHTML = `
+                    <div class="group-info-details">
+                        <h4>${window.currentGroup.name}</h4>
+                        <p><strong>Descripción:</strong> ${window.currentGroup.description || 'Sin descripción'}</p>
+                        <p><strong>Miembros:</strong> ${window.currentGroup.member_count}</p>
+                        <p><strong>Tu rol:</strong> ${window.currentGroup.user_role}</p>
+                        <p><strong>Creado:</strong> ${new Date(window.currentGroup.created_at).toLocaleDateString()}</p>
+                        <p><strong>Tipo:</strong> ${window.currentGroup.is_private ? 'Privado' : 'Público'}</p>
+                    </div>
+                    <div class="group-actions">
+                        <button class="primary-btn" onclick="inviteToGroup()">Invitar Miembros</button>
+                        ${window.currentGroup.user_role !== 'admin' ? '<button class="danger-btn" onclick="leaveGroup()">Salir del Grupo</button>' : ''}
+                    </div>
+                `;
+            }
+        }
+
+        function closeGroupChat() {
+            document.getElementById('group-chat-area').style.display = 'none';
+            window.currentGroup = null;
+        }
+
+        // Funciones para estadísticas antivirus (Admin)
+        function showAntivirusStats() {
+            if (window.currentUserRole !== 'admin') {
+                showToast('Solo administradores pueden ver estas estadísticas', 'error');
+                return;
+            }
+            
+            document.getElementById('antivirus-stats-modal').style.display = 'flex';
+            loadAntivirusStats();
+        }
+
+        function closeAntivirusStatsModal() {
+            document.getElementById('antivirus-stats-modal').style.display = 'none';
+        }
+
+        async function loadAntivirusStats() {
+            try {
+                const response = await fetch('/api/scan-stats', {
+                    headers: { 'Authorization': `Bearer ${window.authToken}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateAntivirusStatsDisplay(data);
+                } else {
+                    showToast('Error cargando estadísticas', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading antivirus stats:', error);
+                showToast('Error cargando estadísticas', 'error');
+            }
+        }
+
+        function updateAntivirusStatsDisplay(data) {
+            document.getElementById('total-scanned').textContent = data.stats.total_scanned || 0;
+            document.getElementById('threats-detected').textContent = data.stats.threats_detected || 0;
+            document.getElementById('unique-uploaders').textContent = data.stats.unique_uploaders || 0;
+            document.getElementById('avg-file-size').textContent = formatFileSize(data.stats.avg_file_size || 0);
+            
+            const recentScansContainer = document.getElementById('recent-scans-list');
+            recentScansContainer.innerHTML = '';
+            
+            if (data.recentScans && data.recentScans.length > 0) {
+                data.recentScans.forEach(scan => {
+                    const scanElement = document.createElement('div');
+                    scanElement.className = `scan-item ${scan.threat_detected ? 'threat' : 'clean'}`;
+                    scanElement.innerHTML = `
+                        <div class="scan-info">
+                            <span class="file-name">${scan.file_name}</span>
+                            <span class="scan-result">${scan.scan_result}</span>
+                        </div>
+                        <div class="scan-meta">
+                            <span class="file-size">${formatFileSize(scan.file_size)}</span>
+                            <span class="scan-date">${new Date(scan.scan_date).toLocaleDateString()}</span>
+                        </div>
+                    `;
+                    recentScansContainer.appendChild(scanElement);
+                });
+            } else {
+                recentScansContainer.innerHTML = '<p>No hay escaneos recientes</p>';
+            }
+        }
+
+        // =============================================================================
+        // FUNCIONES PARA SISTEMA DE TOAST
+        // =============================================================================
+        
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            const toastId = 'toast_' + Date.now();
+            toast.id = toastId;
+            
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <span>${message}</span>
+                    <button onclick="removeToast('${toastId}')">❌</button>
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Auto-remover después de 5 segundos
+            setTimeout(() => {
+                removeToast(toastId);
+            }, 5000);
+        }
+
+        function removeToast(toastId) {
+            const toast = document.getElementById(toastId);
+            if (toast && toast.parentElement) {
+                toast.remove();
+            }
+        }
+
+        // =============================================================================
+        // FUNCIONES PLACEHOLDER PARA GRUPOS
+        // =============================================================================
+        
+        function inviteToGroup() {
+            const username = prompt('Ingresa el nombre de usuario a invitar:');
+            if (username && username.trim()) {
+                // Esta función se implementa en client.js
+                if (window.inviteUserToGroup) {
+                    window.inviteUserToGroup(username.trim());
+                } else {
+                    showToast('Función no implementada aún', 'warning');
+                }
+            }
+        }
+
+        function leaveGroup() {
+            if (confirm('¿Estás seguro de que quieres salir de este grupo?')) {
+                // Esta función se implementa en client.js
+                if (window.leaveCurrentGroup) {
+                    window.leaveCurrentGroup();
+                } else {
+                    showToast('Función no implementada aún', 'warning');
+                }
+            }
+        }
+
+        // =============================================================================
+        // FUNCIONES PARA NOTIFICACIONES
+        // =============================================================================
+        
+        function refreshNotifications() {
+            if (window.refreshNotifications) {
+                window.refreshNotifications();
+            } else {
+                showToast('Actualizando notificaciones...', 'info');
+            }
+        }
+
+        function markAllAsRead() {
+            showToast('Notificaciones marcadas como leídas', 'success');
+        }
+
+        // Funciones para administración de notificaciones (solo admin)
+        function createEventNotification() {
+            if (window.currentUserRole !== 'admin') {
+                showToast('Solo administradores pueden crear eventos', 'error');
+                return;
+            }
+            showToast('Función de crear eventos en desarrollo', 'info');
+        }
+
+        function updateMenuNotification() {
+            if (window.currentUserRole !== 'admin') {
+                showToast('Solo administradores pueden actualizar menús', 'error');
+                return;
+            }
+            showToast('Función de actualizar menú en desarrollo', 'info');
+        }
+
+        function manageNotifications() {
+            if (window.currentUserRole !== 'admin') {
+                showToast('Solo administradores pueden gestionar notificaciones', 'error');
+                return;
+            }
+            showToast('Panel de gestión en desarrollo', 'info');
+        }
+
+        // =============================================================================
+        // INICIALIZACIÓN
+        // =============================================================================
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 UNISECURITY cargado exitosamente');
+            
+            // Agregar event listeners para cerrar modales al hacer clic fuera
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+
+            // Event listener para tecla ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    // Cerrar todos los modales abiertos
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        modal.style.display = 'none';
+                    });
+                }
+            });
+
+            // Mostrar u ocultar pestañas según el rol del usuario
+            // Esta lógica se ejecuta cuando el usuario se loguea
+            window.updateUIForUserRole = function(role) {
+                const ticketsTab = document.getElementById('tickets-tab');
+                const adminPanel = document.getElementById('admin-notifications-panel');
+                
+                if (role === 'student' || role === 'teacher' || role === 'admin') {
+                    ticketsTab.style.display = 'block';
+                } else {
+                    ticketsTab.style.display = 'none';
+                }
+                
+                if (role === 'admin') {
+                    if (adminPanel) adminPanel.style.display = 'block';
+                    
+                    // Agregar botón de estadísticas antivirus en el header para admin
+                    const headerRight = document.querySelector('.header-right');
+                    if (headerRight && !document.getElementById('antivirus-stats-btn')) {
+                        const antivirusBtn = document.createElement('button');
+                        antivirusBtn.id = 'antivirus-stats-btn';
+                        antivirusBtn.className = 'small-btn';
+                        antivirusBtn.innerHTML = '🛡️ Antivirus';
+                        antivirusBtn.onclick = showAntivirusStats;
+                        headerRight.insertBefore(antivirusBtn, headerRight.firstChild);
+                    }
+                } else {
+                    if (adminPanel) adminPanel.style.display = 'none';
+                }
+            };
+
+            // Notificaciones del navegador
+            if ('Notification' in window && Notification.permission === 'default') {
+                setTimeout(() => {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            console.log('✅ Permisos de notificación concedidos');
+                        }
+                    });
+                }, 3000);
+            }
+
+            // Service Worker para notificaciones (opcional)
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('✅ Service Worker registrado');
+                }).catch(error => {
+                    console.log('ℹ️ Service Worker no disponible');
+                });
+            }
+        });
+
+        // =============================================================================
+        // MANEJO DE ERRORES GLOBALES
+        // =============================================================================
+        
+        window.addEventListener('error', function(e) {
+            console.error('Error global capturado:', e.error);
+            showToast('Ha ocurrido un error inesperado', 'error');
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Promise rechazada:', e.reason);
+            showToast('Error de conexión detectado', 'warning');
+        });
+
+        // =============================================================================
+        // FUNCIONES UTILITARIAS
+        // =============================================================================
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatTime(date) {
+            return new Date(date).toLocaleTimeString('es-PE', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function formatDate(date) {
+            return new Date(date).toLocaleDateString('es-PE', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Exponer funciones globalmente para uso desde client.js
+        window.showToast = showToast;
+        window.showTab = showTab;
+        window.showCreateGroupModal = showCreateGroupModal;
+        window.closeCreateGroupModal = closeCreateGroupModal;
+        window.createPoll = createPoll;
+        window.closeCreatePollModal = closeCreatePollModal;
+        window.addPollOption = addPollOption;
+        window.showGroupInfo = showGroupInfo;
+        window.closeGroupChat = closeGroupChat;
+        window.refreshNotifications = refreshNotifications;
+        window.markAllAsRead = markAllAsRead;
+        window.showAntivirusStats = showAntivirusStats;
+        window.closeAntivirusStatsModal = closeAntivirusStatsModal;
+
+        console.log('✅ UNISECURITY - Todas las funciones cargadas');
+    </script>
+</body>
+</html>
