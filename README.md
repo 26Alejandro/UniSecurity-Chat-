@@ -1,7 +1,5 @@
-# Sistema de Mensajería en Tiempo Real con WebSockets y Encriptación E2E
+# UniSecurity Chat 🚀
 
-## Título del Proyecto
-**Sistema de Mensajería en Tiempo Real con WebSockets y Encriptación de Extremo a Extremo (E2E)**
 
 ## Objetivos del Proyecto
 
